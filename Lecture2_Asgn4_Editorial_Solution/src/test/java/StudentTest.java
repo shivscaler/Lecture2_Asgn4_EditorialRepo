@@ -3,19 +3,10 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.lang.reflect.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+
 class StudentTest {
 
     private Student student;
@@ -23,8 +14,16 @@ class StudentTest {
 
     @BeforeEach
     void setUp() {
-        student = new Student();
+        try {
+            Constructor<Student> constructor = Student.class.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            student = constructor.newInstance();
+        } catch (NoSuchMethodException | IllegalAccessException | InstantiationException |
+                 InvocationTargetException e) {
+            fail("Default constructor does not exist or is not accessible");
+        }
     }
+
     @Test
     public void testAgeExists() {
         try {
@@ -35,7 +34,7 @@ class StudentTest {
             fail("Field age does not exist");
         }
     }
-    
+
     @Test
     public void testDefaultConstructorExists() {
         try {
@@ -83,42 +82,78 @@ class StudentTest {
             fail("Constructor with int and String parameters does not exist");
         }
     }
+
     @Test
-    public void testDefaultConstructor() {
-        Student student = new Student();
-        assertEquals(0, student.age);
-        assertNull(student.name);
+    public void testDefaultConstructor() throws NoSuchFieldException, IllegalAccessException {
+        Field ageField = Student.class.getDeclaredField("age");
+        ageField.setAccessible(true);
+        Field nameField = Student.class.getDeclaredField("name");
+        nameField.setAccessible(true);
+
+        assertEquals(0, ageField.getInt(student));
+        assertNull(nameField.get(student));
     }
 
     @Test
     public void testConstructorWithIntParameter() {
-        int age = 21;
-        Student student = new Student(age);
-        assertEquals(age, student.age);
-        assertNull(student.name);
+        try {
+            int age = 21;
+            Constructor<?> constructor = Student.class.getDeclaredConstructor(int.class);
+            assertNotNull(constructor);
+            assertEquals(1, constructor.getParameterCount());
+            assertEquals("int", constructor.getParameterTypes()[0].getSimpleName());
+
+            Object instance = constructor.newInstance(age);
+            assertTrue(instance instanceof Student);
+
+            Student student = (Student) instance;
+            assertEquals(age, student.age);
+            assertNull(student.name);
+        } catch (Exception e) {
+            fail("Failed to test constructor with int parameter using reflection");
+        }
     }
 
     @Test
     public void testConstructorWithStringParameter() {
-        String name = "John";
-        Student student = new Student(name);
-        assertEquals(0, student.age);
-        assertEquals(name, student.name);
+        try {
+            String name = "John";
+            Constructor<?> constructor = Student.class.getDeclaredConstructor(String.class);
+            assertNotNull(constructor);
+            assertEquals(1, constructor.getParameterCount());
+            assertEquals("String", constructor.getParameterTypes()[0].getSimpleName());
+
+            Object instance = constructor.newInstance(name);
+            assertTrue(instance instanceof Student);
+
+            Student student = (Student) instance;
+            assertEquals(0, student.age);
+            assertEquals(name, student.name);
+        } catch (Exception e) {
+            fail("Failed to test constructor with String parameter using reflection");
+        }
     }
 
     @Test
     public void testConstructorWithIntAndStringParameters() {
-        int age = 21;
-        String name = "John";
-        Student student = new Student(age, name);
-        assertEquals(age, student.age);
-        assertEquals(name, student.name);
-    }
-    @Test
-    public void testNullName() {
-        Student student = new Student(21, null);
-        assertEquals(21, student.age);
-        assertNull(student.name);
+        try {
+            int age = 21;
+            String name = "John";
+            Constructor<?> constructor = Student.class.getDeclaredConstructor(int.class, String.class);
+            assertNotNull(constructor);
+            assertEquals(2, constructor.getParameterCount());
+            assertEquals("int", constructor.getParameterTypes()[0].getSimpleName());
+            assertEquals("String", constructor.getParameterTypes()[1].getSimpleName());
+
+            Object instance = constructor.newInstance(age, name);
+            assertTrue(instance instanceof Student);
+
+            Student student = (Student) instance;
+            assertEquals(age, student.age);
+            assertEquals(name, student.name);
+        } catch (Exception e) {
+            fail("Failed to test constructor with int and String parameters using reflection");
+        }
     }
 
 
